@@ -1,0 +1,38 @@
+@startuml
+
+'default
+
+package "PortalModule" {
+    [PortalWeb] -> [AuthenticationModule]
+}
+
+package "FleetOwnerModule" {
+    [FleetOwnerWebComponent] -> [FleetOwnerAPI]
+    [FleetOwnerWebComponent] -d-> [ServiceRulesAPI]
+    [ServiceRulesAPI] -> [SensorAPI]
+}
+
+package "ServiceModule" {
+    [ServiceWebComponent] -> [ServiceAPI]
+}
+
+package "MetricsModule" {
+   [DataAggregator] -d- [SensorStatusCalculator]
+   [SensorStatusCalculator] -d- [ServiceRequestGenerator]
+   [MetricsEngine] -> [FleetOwnerAPI]
+   [MetricsEngine] -> [AuthenticationModule]
+}
+
+package "ClientModule" {
+    [ClientWebComponent] -> [ServiceAPI]
+}
+
+package "EventsModule" {
+    [EventAPI]
+}
+
+package "ExchangeModule" {
+    [ExchangeAPI]
+}
+
+@enduml

@@ -1,56 +1,47 @@
-const AWS = require('aws-sdk');
 const uuid = require('uuid');
-
-const dynamoDb = new AWS.DynamoDB.DocumentClient();
+const persistenceService = require('./persistance-service')
 
 class EntriesService {
-    constructor() {
-        this.params = {
-            TableName: process.env.TABLE_NAME
-        }
-        const x = {prop1: 1, prop2: 2}
-        const y = {...x, prop2: 3}
+    getEntries(res) {
+        console.log('Fetching entries')
+        persistenceService.fetchByEntityType('Entry',
+            (items) => res.json({entries: items}),
+            (error) => res.status(400).json({error: 'Error fetching the entries', source: error})
+        )
     }
 
-    getEntries(res) {
-        const params = {
-            ...this.params,
-            KeyConditionExpression: "EntityType = :type",
-            ExpressionAttributeValues: {
-                ":type": "Entry"
-            }
+    createItemObject(itemId, itemData) {
+        return {
+            EntityType: 'Entry',
+            EntityId: itemId,
+            ...itemData
         }
-        console.log('Query', params)
-        dynamoDb.query(params, (error, result) => {
-            if (error) {
-                res.status(400).json({ error: 'Error fetching the entries', source: error });
-            } else {
-                console.log("Loaded", result)
-                res.json({entries: result.Items});
-            }
-        });
     }
 
     addEntry(res, req) {
-        const entryData = req.body;
-        console.log("Received: ", entryData);
-        const itemId = uuid.v4()
-        const item = {
-            EntityType: 'Entry',
-            EntityId: itemId,
-            ...entryData
-        };
+        const item = this.createItemObject(uuid.v4(), req.body)
         console.log('Storing item:', item)
-        const params = {...this.params, Item: item};
-        dynamoDb.put(params, (error, data) => {
-            if (error) {
-                res.status(400).json({ error: 'Could not create Entry', info: error });
-            } else {
-                res.json(item);
-            }
-        });
-
+        persistenceService.putItem(item,
+            (item) => res.json(item),
+            (error) => res.status(400).json({error: 'Could not create Entry', source: error}))
     }
+
+    updateEntry(res, entryId) {
+        const entryData = req.body;
+        const item = this.createItemObject(entryData.EntityId, entryData)
+        console.log('Updating item:', item)
+       persistenceService.putItem(item,
+           (item) => res.json(item),
+           (error) => res.status(400).json({error: 'Could not update Entry', source: error}))
+    }
+
+    deleteEntry(res, entryId) {
+        console.log('Deleting item id:', entryId)
+        persistenceService.deleteItem(entryId,
+            (item) => res.json(item),
+            (error) => res.status(400).json({error: 'Could not delete Entry', source: error}))
+    }
+
 }
 
-module.exports = EntriesService
+module.exports = new EntriesService()

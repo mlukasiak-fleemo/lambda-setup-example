@@ -24,14 +24,23 @@ Resources:
         MaxAge: "'600'"
         AllowCredentials: False
 
+  EntryStatusTopic:
+     Type: AWS::SNS::Topic
+     Properties:
+       TopicName: EntryStatus
+
   EntriesGetFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: entries-api/
       Handler: app.lambdaHandler
       Runtime: nodejs12.x
-      Policies: AmazonDynamoDBFullAccess
+      Role: arn:aws:iam::496864027700:role/FleemoLambdaRole
       Events:
+        SNSTrigger:
+          Type: SNS
+          Properties:
+            TopicName: !Ref EntryStatusTopic
         EntriesAll:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
@@ -44,6 +53,7 @@ Resources:
             RestApiId: !Ref EntriesApi
             Path: /entries
             Method: ANY
+
 
   EntriesTable:
     Type: AWS::DynamoDB::Table
@@ -71,6 +81,3 @@ Outputs:
   EntriesCRUDFunction:
     Description: "Entries Lambda Function ARN"
     Value: !GetAtt EntriesGetFunction.Arn
-  EntriesCRUDFunctionIamRole:
-    Description: "Implicit IAM Role created for Entries function"
-    Value: !GetAtt EntriesGetFunctionRole.Arn
